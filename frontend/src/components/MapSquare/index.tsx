@@ -5,12 +5,12 @@ type TMapSquare = {
   latitude: number;
   longitude: number;
   squareDistance: number;
+  isFugitive: boolean
 };
 
-export function MapSquare({ latitude, longitude, squareDistance }: TMapSquare) {
+export function MapSquare({ latitude, longitude, squareDistance,isFugitive }: TMapSquare) {
   const halfDist = squareDistance / 2;
 
-  // Ajuste para longitude considerando latitude
   const lngAdjust = halfDist / Math.cos((latitude * Math.PI) / 180);
 
   const square: Feature<Polygon> = {
@@ -24,11 +24,14 @@ export function MapSquare({ latitude, longitude, squareDistance }: TMapSquare) {
           [longitude + lngAdjust, latitude + halfDist], // top-right
           [longitude + lngAdjust, latitude - halfDist], // bottom-right
           [longitude - lngAdjust, latitude - halfDist], // bottom-left
-          [longitude - lngAdjust, latitude + halfDist], // fecha o polígono
+          [longitude - lngAdjust, latitude + halfDist], // fecha o poligono
         ],
       ],
     },
   };
+
+  const borderColor = isFugitive ? "#dc2626" : "#2563eb"
+  const fillColor = isFugitive ? "#ef4444" : "#3b82f6"
 
   return (
     <Source id="square" type="geojson" data={square}>
@@ -36,7 +39,7 @@ export function MapSquare({ latitude, longitude, squareDistance }: TMapSquare) {
         id="square-fill"
         type="fill"
         paint={{
-          "fill-color": "#3b82f6",
+          "fill-color": fillColor,
           "fill-opacity": 0.3,
         }}
       />
@@ -44,7 +47,7 @@ export function MapSquare({ latitude, longitude, squareDistance }: TMapSquare) {
         id="square-outline"
         type="line"
         paint={{
-          "line-color": "#2563eb",
+          "line-color": borderColor,
           "line-width": 2,
         }}
       />

@@ -57,6 +57,11 @@
 #define UDP_CLIENT_PORT 8775
 #define UDP_SERVER_PORT 5688
 
+typedef struct {
+  int32_t latitude;   /* Latitude * 1000000 */
+  int32_t longitude;  /* Longitude * 1000000 */
+} gps_data_t;
+
 static struct uip_udp_conn *server_conn;
 
 PROCESS(udp_server_process, "UDP server process");
@@ -99,6 +104,9 @@ tcpip_handler(void)
   linkaddr_t sender;
   uint8_t seqno;
   uint8_t hops;
+  int i;
+  gps_data_t *gps_ptr;
+  int32_t latitude, longitude;
 
   if(uip_newdata()) {
     appdata = (uint8_t *)uip_appdata;
@@ -106,8 +114,62 @@ tcpip_handler(void)
     sender.u8[1] = UIP_IP_BUF->srcipaddr.u8[14];
     seqno = *appdata;
     hops = uip_ds6_if.cur_hop_limit - UIP_IP_BUF->ttl + 1;
+    
+    /* Extrai dados GPS do final do pacote */
+    if(uip_datalen() >= (2 + sizeof(gps_data_t))) {
+      gps_ptr = (gps_data_t *)(appdata + uip_datalen() - sizeof(gps_data_t));
+      latitude = gps_ptr->latitude;
+      longitude = gps_ptr->longitude;
+    } else {
+      latitude = 0;
+      longitude = 0;
+    }
+    
+    printf("===DATA_START===\n");
+    printf("SENDER: %02x%02x\n", sender.u8[0], sender.u8[1]);
+    printf("SEQNO: %d\n", seqno);
+    printf("HOPS: %d\n", hops);
+    printf("LEN: %d\n", uip_datalen() - 2);
+    printf("TIMESTAMP: %lu\n", clock_time());
+    
+    printf("SENDER_IP: ");
+    for(i = 0; i < 16; i++) {
+      printf("%02x", UIP_IP_BUF->srcipaddr.u8[i]);
+      if(i < 15) printf(":");
+    }
+    printf("\n");
+    
+    if(latitude != 0 || longitude != 0) {
+      printf("GPS_LAT: %ld.%06ld\n", 
+             latitude / 1000000,
+             (latitude < 0 ? -latitude : latitude) % 1000000);
+      printf("GPS_LON: %ld.%06ld\n",
+             longitude / 1000000,
+             (longitude < 0 ? -longitude : longitude) % 1000000);
+      printf("GPS_LAT_RAW: %ld\n", latitude);
+      printf("GPS_LON_RAW: %ld\n", longitude);
+    }
+    
+    printf("DATA_HEX: ");
+    for(i = 2; i < uip_datalen(); i++) {
+      printf("%02x", appdata[i]);
+    }
+    printf("\n");
+    
+    printf("DATA_ASCII: ");
+    for(i = 2; i < uip_datalen(); i++) {
+      if(appdata[i] >= 32 && appdata[i] <= 126) {
+        printf("%c", appdata[i]);
+      } else {
+        printf(".");
+      }
+    }
+    printf("\n");
+    
+    printf("===DATA_END===\n\n");
+    
     collect_common_recv(&sender, seqno, hops,
-                        appdata + 2, uip_datalen() - 2);
+                        appdata + 2, uip_datalen() - 2 - sizeof(gps_data_t));
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -173,6 +235,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
   PRINT6ADDR(&server_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
          UIP_HTONS(server_conn->rport));
+  
+  printf("===SINK_READY===\n");
+  printf("Waiting for GPS data from cattle nodes...\n");
 
   while(1) {
     PROCESS_YIELD();

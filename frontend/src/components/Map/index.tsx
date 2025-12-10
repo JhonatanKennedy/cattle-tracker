@@ -3,15 +3,26 @@ import { MapSquare } from "../MapSquare";
 import { CowMarker } from "../Marker";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+export type TMarker = {
+  hops: string
+  id: string
+  insideArea: boolean
+  isActive: boolean
+  lastUpdate: string
+  lastUpdateTime: number
+  latitude: number
+  longitude: number
+  seqno: string
+  timestamp: string
+}
+
 type TCattleMapProps = {
-  markers: {
-    id: number;
-    latitude: number;
-    longitude: number;
-  }[];
+  markers:TMarker[];
 };
 
 export function CattleMap({ markers }: TCattleMapProps) {
+  const hasFugitive = markers.some(marker => !marker.insideArea || !marker.isActive)
+
   return (
     <Map
       initialViewState={{
@@ -27,7 +38,8 @@ export function CattleMap({ markers }: TCattleMapProps) {
       <MapSquare
         latitude={-8.055719}
         longitude={-34.950969}
-        squareDistance={0.0003}
+        squareDistance={0.001}
+        isFugitive={hasFugitive}
       />
 
       {markers.map((marker) => (

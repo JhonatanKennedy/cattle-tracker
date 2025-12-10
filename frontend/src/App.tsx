@@ -1,10 +1,11 @@
-import { CattleMap } from "@/components/Map";
+import { CattleMap, type TMarker } from "@/components/Map";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { UpState } from "./components/UpState";
+import DeviceList from "./components/DeviceList";
 
 function App() {
-  const [markersPos, setMarkersPos] = useState([]);
+  const [markersPos, setMarkersPos] = useState<TMarker[]>([]);
 
   const [connected, setConnected] = useState(false);
 
@@ -37,6 +38,7 @@ function App() {
       }}
     >
       <UpState connected={connected} />
+      <DeviceList devices={markersPos}/>
       <CattleMap markers={markersPos} />
     </div>
   );
